@@ -1,0 +1,68 @@
+name: API Swagger Update
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "design/api-contracts/**"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "design/api-contracts/**"
+      
+env:
+   ## These variables are shared across workflows, please configure in GitHub variables
+  # Project code base dir, usually where the solution file resides. Example: ./src
+  PROJECT_BASE_DIR: ${{ vars.PROJECT_BASE_DIR }}
+  # Path to the Cadl dir. Example: ./cadl
+  CADL_DIRNAME: ${{ vars.CADL_DIRNAME }}
+  # Cadl filename used for comparison. Example: main.cadl
+  CADL_FILENAME: ${{ vars.CADL_FILENAME }}
+  # version to use of the api. Example: v1
+  API_SWAGGER_VERSION: ${{ vars.API_SWAGGER_VERSION }}
+  # Swagger path for static files. Example: swagger
+  API_SWAGGER_OUTPUT_DIR: ${{ vars.API_SWAGGER_OUTPUT_DIR }}
+  # Swagger generated filename. Example: swagger.json
+  API_SWAGGER_OUTPUT_FILENAME: ${{ vars.API_SWAGGER_OUTPUT_FILENAME }}
+
+jobs:
+  generate-swagger-contract:
+    name: Generate Swagger OpenAPI contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+
+      - run: npm ci
+        working-directory: ${{ env.CADL_DIRNAME }}
+
+      - name: Generating API Contract from CADL
+        working-directory: ${{ env.CADL_DIRNAME }}
+        run: npx cadl compile ${{ env.CADL_FILENAME }} --output-dir ../../${{ env.PROJECT_BASE_DIR }}/wwwroot/${{ env.API_SWAGGER_OUTPUT_DIR }}/${{ env.API_SWAGGER_VERSION }} --option "@cadl-lang/openapi3.output-file=${{ env.API_SWAGGER_OUTPUT_FILENAME }}"
+
+      - name: Check if there are any changes
+        id: verify_diff
+        run: |
+          git diff --quiet . || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit files
+        if: steps.verify_diff.outputs.changed == 'true'
+        working-directory: ${{ env.PROJECT_BASE_DIR }}
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          git commit -a -m "Updating ${{ env.API_SWAGGER_OUTPUT_FILENAME }} - ${{ env.API_SWAGGER_VERSION }}"
+
+      - name: Push
+        if: steps.verify_diff.outputs.changed == 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.head_ref }}

@@ -1,0 +1,97 @@
+name: API TypeSpec Contract verification
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - src/**
+      - .github/**
+  pull_request:
+    branches: ["main"]
+    paths:
+      - src/**
+      - .github/**
+env:
+  ## These variables are shared across workflows, please configure in GitHub variables
+  # Project code base dir, usually where the solution file resides. Example: ./src
+  PROJECT_BASE_DIR:  "src/"
+  # Api project dir. Example: IST
+  API_PROJECT_DIR: "TodoApi"
+  # Path to the Cadl dir. Example: ./cadl
+  TSP_DIRNAME: "design/api-contracts/todo"
+  # Cadl filename used for comparison. Example: main.cadl
+  TSP_FILENAME: "main.tsp"
+  
+  # nswag generated openapi filename, used only for comparison inside the workflow
+  CODE_OPENAPI_FILENAME: openapi.code.json
+  # cadl generated openapi filename, used only for comparison inside the workflow
+  TSP_OPENAPI_FILENAME: openapi.base.json
+  # temporary directory used only for comparison inside the workflow
+  OPENAPI_OUTPUT_DIRNAME: openapi-output
+  # temporary directory for the api build
+  DOTNET_ASSEMBLY_DIRNAME: build
+
+  SWAGGER_URL: "http://localhost:5147/swagger/v1/swagger.json"
+
+jobs:
+  contract-verification:
+    name: API Contract Verification
+    runs-on: ubuntu-latest
+    steps:
+      # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+      # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+
+      - run: npm ci
+        working-directory: ${{ env.TSP_DIRNAME }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: 7.0.x
+
+      - name: Restore dependencies
+        working-directory: ${{ env.PROJECT_BASE_DIR }}/${{ env.API_PROJECT_DIR }}
+        run: dotnet restore
+
+      - name: Run Api
+        working-directory: ${{ env.PROJECT_BASE_DIR }}/${{ env.API_PROJECT_DIR }}
+        run: dotnet run &
+
+      - name: Generating API Contract from CADL
+        working-directory: ${{ env.TSP_DIRNAME }}
+        run: npx tsp compile ${{ env.TSP_FILENAME }} --option "@typespec/openapi3.output-file=${{ env.TSP_OPENAPI_FILENAME }}" --option "@typespec/openapi3.emitter-output-dir={project-root}/${{ env.OPENAPI_OUTPUT_DIRNAME }}"
+
+      - name: Retrieving API Contract from implementation
+        working-directory: ${{ env.TSP_DIRNAME }}/${{ env.OPENAPI_OUTPUT_DIRNAME }}
+        run: curl ${{ env.SWAGGER_URL }} -o ${{ env.CODE_OPENAPI_FILENAME }}
+
+      - name: Comparing API Contracts
+        uses: Tufin/oasdiff-action@v2
+        with:
+          base: ${{ env.TSP_DIRNAME }}/${{ env.OPENAPI_OUTPUT_DIRNAME }}/${{ env.TSP_OPENAPI_FILENAME }}
+          revision: ${{ env.TSP_DIRNAME }}/${{ env.OPENAPI_OUTPUT_DIRNAME }}/${{ env.CODE_OPENAPI_FILENAME }}
+          format: 'text'
+          breaking-only: true
+          fail-on-diff: true
+
+      - name: Genering diff files
+        working-directory: ${{ env.TSP_DIRNAME }}/${{ env.OPENAPI_OUTPUT_DIRNAME }}
+        run: |
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }}
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff -breaking-only -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.breaking.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.detailed.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff -summary -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.summary.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff -summary -format yaml -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.detailed.json
+
+      - name: Archive API contract differences
+        uses: actions/upload-artifact@v3
+        with:
+          name: apidiff
+          path: |
+            ${{ env.OPENAPI_OUTPUT_DIRNAME }}/*
