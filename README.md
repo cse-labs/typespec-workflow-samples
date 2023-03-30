@@ -1,6 +1,6 @@
 # TypeSpec Workflow Samples
 
-This repository provides samples for using TypeSpec with GitHub Actions, Workflows, Pipelines, and CI/CD to accelerate adoption of TypeSpec in GitHub.
+This repository provides samples for using [Microsoft TypeSpec](https://github.com/Microsoft/typespec) with GitHub Actions, Workflows, Pipelines, and CI/CD to accelerate adoption of TypeSpec in GitHub.
 TypeSpec is a tool for generating OpenAPI.json specifications from the CADL format. 
 
 ## Getting Started
