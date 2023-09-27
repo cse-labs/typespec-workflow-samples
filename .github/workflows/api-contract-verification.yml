@@ -82,11 +82,10 @@ jobs:
       - name: Genering diff files
         working-directory: ${{ env.TSP_DIRNAME }}/${{ env.OPENAPI_OUTPUT_DIRNAME }}
         run: |
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable breaking /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable breaking /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text > diff.breaking.txt
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable diff /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text > diff.detailed.txt
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable summary /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text > diff.summary.txt
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable summary /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format yaml > diff.detailed.json
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:main breaking /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:main breaking /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text > diff.breaking.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:main diff /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text > diff.detailed.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:main summary /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format yaml > diff.detailed.json
 
       - name: Archive API contract differences
         uses: actions/upload-artifact@v3
