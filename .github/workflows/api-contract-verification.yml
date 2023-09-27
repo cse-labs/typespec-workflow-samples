@@ -72,22 +72,21 @@ jobs:
         run: curl ${{ env.SWAGGER_URL }} -o ${{ env.CODE_OPENAPI_FILENAME }}
 
       - name: Comparing API Contracts
-        uses: Tufin/oasdiff-action@v2
+        uses: oasdiff/oasdiff-action/breaking@main
         with:
           base: ${{ env.TSP_DIRNAME }}/${{ env.OPENAPI_OUTPUT_DIRNAME }}/${{ env.TSP_OPENAPI_FILENAME }}
           revision: ${{ env.TSP_DIRNAME }}/${{ env.OPENAPI_OUTPUT_DIRNAME }}/${{ env.CODE_OPENAPI_FILENAME }}
           format: 'text'
-          breaking-only: true
           fail-on-diff: true
 
       - name: Genering diff files
         working-directory: ${{ env.TSP_DIRNAME }}/${{ env.OPENAPI_OUTPUT_DIRNAME }}
         run: |
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }}
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff -breaking-only -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.breaking.txt
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.detailed.txt
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff -summary -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.summary.txt
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff -summary -format yaml -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.detailed.json
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }}
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable -breaking-only -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.breaking.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.detailed.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable -summary -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.summary.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable -summary -format yaml -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.detailed.json
 
       - name: Archive API contract differences
         uses: actions/upload-artifact@v3
