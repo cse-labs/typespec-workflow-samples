@@ -82,11 +82,11 @@ jobs:
       - name: Genering diff files
         working-directory: ${{ env.TSP_DIRNAME }}/${{ env.OPENAPI_OUTPUT_DIRNAME }}
         run: |
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }}
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable -breaking-only -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.breaking.txt
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.detailed.txt
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable -summary -format text -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.summary.txt
-          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable -summary -format yaml -base /data/${{ env.TSP_OPENAPI_FILENAME }} -revision /data/${{ env.CODE_OPENAPI_FILENAME }} > diff.detailed.json
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable breaking /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable breaking /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text > diff.breaking.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable diff /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text > diff.detailed.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable summary /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format text > diff.summary.txt
+          docker run --rm -t -v $(pwd):/data:ro tufin/oasdiff:stable summary /data/${{ env.TSP_OPENAPI_FILENAME }} /data/${{ env.CODE_OPENAPI_FILENAME }} --format yaml > diff.detailed.json
 
       - name: Archive API contract differences
         uses: actions/upload-artifact@v3
